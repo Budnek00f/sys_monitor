@@ -13,10 +13,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Токен вашего бота (получить у @BotFather)
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = "5696379337:AAFOKBjO0wiMZDs2lqsc7RPPFnODOJK4Qi4"
 
 # ID администраторов (можно получить через @userinfobot)
-ADMIN_IDS = [123456789]  # Замените на ваш ID
+ADMIN_IDS = [86458589]  # Замените на ваш ID 
 
 # Клавиатура для удобства
 KEYBOARD = ReplyKeyboardMarkup([
