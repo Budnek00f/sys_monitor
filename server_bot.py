@@ -2,6 +2,8 @@ import logging
 import psutil
 import subprocess
 import os
+import time
+from datetime import datetime
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -67,9 +69,12 @@ async def server_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Информация о загрузке системы
         boot_time = psutil.boot_time()
-        uptime = psutil.uptime()
+        uptime = time.time() - boot_time
         hours, remainder = divmod(uptime, 3600)
         minutes, seconds = divmod(remainder, 60)
+        
+        # Форматируем время загрузки
+        boot_time_formatted = datetime.fromtimestamp(boot_time).strftime('%Y-%m-%d %H:%M:%S')
         
         status_text = f"""
 🖥️ Статус сервера:
@@ -83,7 +88,7 @@ async def server_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
   - Использовано: {memory_used} GB ({memory_percent}%)
 
 ⏰ Время работы:
-  - Запущен: {psutil.users()[0].started if psutil.users() else 'N/A'}
+  - Запущен: {boot_time_formatted}
   - Аптайм: {int(hours)}ч {int(minutes)}м {int(seconds)}с
 """
         await update.message.reply_text(status_text, reply_markup=KEYBOARD)
@@ -131,10 +136,10 @@ async def processes_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         processes.sort(key=lambda x: x['cpu_percent'] or 0, reverse=True)
         
         processes_text = "🔍 Топ процессов по CPU:\n\n"
-        for proc in processes[:10]:  # Показываем топ-10
-            processes_text += f"PID {proc['pid']}: {proc['name']}\n"
-            processes_text += f"  CPU: {proc['cpu_percent'] or 0:.1f}%"
-            processes_text += f"  Memory: {proc['memory_percent'] or 0:.1f}%\n\n"
+        for i, proc in enumerate(processes[:10], 1):  # Показываем топ-10
+            processes_text += f"{i}. PID {proc['pid']}: {proc['name']}\n"
+            processes_text += f"   CPU: {proc['cpu_percent'] or 0:.1f}%"
+            processes_text += f"   Memory: {proc['memory_percent'] or 0:.1f}%\n\n"
         
         await update.message.reply_text(processes_text, reply_markup=KEYBOARD)
         
@@ -154,7 +159,8 @@ async def reboot_server(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Команда для перезагрузки (для Linux)
         if os.name == 'posix':
-            subprocess.run(['sudo', 'reboot'], check=True)
+            # Безопасный способ - через systemctl
+            subprocess.run(['sudo', 'systemctl', 'reboot'], check=True)
         # Для Windows
         elif os.name == 'nt':
             subprocess.run(['shutdown', '/r', '/t', '0'], check=True)
@@ -189,22 +195,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """Запуск бота"""
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Добавляем обработчики команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("status", server_status))
-    application.add_handler(CommandHandler("disk", disk_info))
-    application.add_handler(CommandHandler("processes", processes_info))
-    application.add_handler(CommandHandler("reboot", reboot_server))
-    
-    # Обработчик текстовых сообщений
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    # Запускаем бота
-    print("Бот запущен...")
-    application.run_polling()
+    try:
+        application = Application.builder().token(BOT_TOKEN).build()
+        
+        # Добавляем обработчики команд
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help_command))
+        application.add_handler(CommandHandler("status", server_status))
+        application.add_handler(CommandHandler("disk", disk_info))
+        application.add_handler(CommandHandler("processes", processes_info))
+        application.add_handler(CommandHandler("reboot", reboot_server))
+        
+        # Обработчик текстовых сообщений
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        
+        # Запускаем бота
+        print("Бот запущен...")
+        application.run_polling()
+        
+    except Exception as e:
+        logger.error(f"Ошибка при запуске бота: {e}")
 
 if __name__ == "__main__":
     main()
