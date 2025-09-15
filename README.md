@@ -7,4 +7,5 @@ Telegram bot for system monitoring with Docker support.
 ```bash
 docker-compose up -d
 
+```bash
 Найдите бота в Telegram: @Budnek00f_bot
