@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build: .
+    container_name: telegram-bot
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  system-monitor:
+    build: .
+    container_name: system-monitor
+    command: python system_monitor.py
+    restart: unless-stopped
